@@ -3948,7 +3948,10 @@ static int tabla_volatile(struct snd_soc_codec *ssc, unsigned int reg)
 }
 
 #define TABLA_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
-static int tabla_write(struct snd_soc_codec *codec, unsigned int reg,
+#ifndef CONFIG_SOUND_CONTROL_HAX_GPL
+static
+#endif
+int tabla_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
 	int ret;
@@ -3963,8 +3966,14 @@ static int tabla_write(struct snd_soc_codec *codec, unsigned int reg,
 
 	return wcd9xxx_reg_write(codec->control_data, reg, value);
 }
+#ifdef CONFIG_SOUND_CONTROL_HAX_GPL
+EXPORT_SYMBOL(tabla_write)
+#endif
 
-unsigned int tabla_read(struct snd_soc_codec *codec,
+#ifndef CONFIG_SOUND_CONTROL_HAX_GPL
+static
+#endif
+;unsigned int tabla_read(struct snd_soc_codec *codec,
 				unsigned int reg)
 {
 	unsigned int val;
@@ -8645,6 +8654,10 @@ static const struct file_operations codec_mbhc_debug_ops = {
 #ifdef CONFIG_SOUND_CONTROL_HAX_GPL
 struct snd_kcontrol_new *gpl_faux_snd_controls_ptr =
 	(struct snd_kcontrol_new *)tabla_snd_controls;
+struct snd_soc_codec *fauxsound_codec_ptr;
+EXPORT_SYMBOL(fauxsound_codec_ptr);
+int wcd9xxx_hw_revision;
+EXPORT_SYMBOL(wcd9xxx_hw_revision);
 #endif
 
 static int tabla_codec_probe(struct snd_soc_codec *codec)
@@ -8664,6 +8677,12 @@ static int tabla_codec_probe(struct snd_soc_codec *codec)
 	codec->control_data = dev_get_drvdata(codec->dev->parent);
 	control = codec->control_data;
 
+#ifdef CONFIG_SOUND_CONTROL_HAX_3_GPL
+	if (TABLA_IS_2_0(control->version))
+		wcd9xxx_hw_revision = 1;
+	else
+		wcd9xxx_hw_revision = 2;
+#endif
 	tabla = kzalloc(sizeof(struct tabla_priv), GFP_KERNEL);
 	if (!tabla) {
 		dev_err(codec->dev, "Failed to allocate private data\n");
@@ -8937,7 +8956,6 @@ static int tabla_codec_remove(struct snd_soc_codec *codec)
 static struct snd_soc_codec_driver soc_codec_dev_tabla = {
 	.probe	= tabla_codec_probe,
 	.remove	= tabla_codec_remove,
-	.read = tabla_read,
 	.write = tabla_write,
 	.readable_register = tabla_readable,
 	.volatile_register = tabla_volatile,
