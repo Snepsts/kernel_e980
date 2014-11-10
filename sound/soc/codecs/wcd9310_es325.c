@@ -8832,7 +8832,6 @@ static struct snd_soc_codec_driver soc_codec_dev_tabla = {
 	.probe	= tabla_codec_probe,
 	.remove	= tabla_codec_remove,
 	.read = tabla_read,
-	.write = tabla_write,
 	.readable_register = tabla_readable,
 	.volatile_register = tabla_volatile,
 

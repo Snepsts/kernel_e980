@@ -2277,12 +2277,18 @@ static struct platform_device msm_tsens_device = {
 };
 
 static struct msm_thermal_data msm_thermal_pdata = {
-	.sensor_id = 7,	
+	.sensor_id = 7,
+#ifdef CONFIG_LGE_PM	
 	.poll_ms = 1000,
+	.limit_temp_degC = 90,
+#if defined(CONFIG_MACH_APQ8064_GK_KR)||defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKGLOBAL)
+	.limit_temp_degC_low = 20,
+#endif
 #ifdef CONFIG_CPU_OVERCLOCK
 	.limit_temp_degC = 110,
 #else
 	.limit_temp_degC = 90,
+#endif
 #endif
 	.temp_hysteresis_degC = 10,
 	.freq_step = 2,
