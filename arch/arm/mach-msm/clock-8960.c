@@ -379,16 +379,47 @@ enum vdd_dig_levels {
 	VDD_DIG_HIGH
 };
 
+#define GPU_MIN_VDD           900000
+#define GPU_MAX_VDD          1200000
+
+static int vdd_uv[] = {
+  	[VDD_DIG_NONE]    =       0,
+  	[VDD_DIG_LOW]     =  945000,
+  	[VDD_DIG_NOMINAL] = 1050000,
+  	[VDD_DIG_HIGH]    = 1150000
+};
+
+ssize_t get_gpu_vdd_levels_str(char *buf)
+{
+  	int i, len = 0;
+
+  	if (buf)
+  	{
+    		for (i = 1; i <= 3; i++)
+    		{
+      		len += sprintf(buf + len, "%d\n", vdd_uv[i]);
+    		}
+  	}
+  return len;
+}
+
+void set_gpu_vdd_levels(int uv_tbl[])
+{
+  int i;
+  for (i = 1; i <= 3; i++)
+  {
+    vdd_uv[i] = min(max(uv_tbl[i - 1],
+      GPU_MIN_VDD), GPU_MAX_VDD);
+  }
+}
+
 static int set_vdd_dig_8960(struct clk_vdd_class *vdd_class, int level)
 {
-	static const int vdd_uv[] = {
-		[VDD_DIG_NONE]    =       0,
-		[VDD_DIG_LOW]     =  945000,
-		[VDD_DIG_NOMINAL] = 1050000,
-		[VDD_DIG_HIGH]    = 1150000
-	};
-	return rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_S3, RPM_VREG_VOTER3,
-				    vdd_uv[level], 1150000, 1);
+	int ret;
+  	ret = rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_S3, RPM_VREG_VOTER3,
+            vdd_uv[level], vdd_uv[VDD_DIG_HIGH], 1);
+  	pr_alert("GPU VOLTAGE - %d - %d", vdd_uv[level], ret);
+  	return ret;
 }
 
 static DEFINE_VDD_CLASS(vdd_dig, set_vdd_dig_8960);
@@ -557,7 +588,7 @@ static struct pll_vote_clk pll8_clk = {
 	.parent = &pxo_clk.c,
 	.c = {
 		.dbg_name = "pll8_clk",
-		.rate = 384000000,
+		.rate = 192000000,
 		.ops = &clk_ops_pll_vote,
 		CLK_INIT(pll8_clk.c),
 	},
@@ -3266,36 +3297,12 @@ static struct clk_freq_tbl clk_tbl_dsi_byte[] = {
 	F_END
 };
 
-static struct branch_clk dsi1_reset_clk = {
-	.b = {
-		.reset_reg = SW_RESET_CORE_REG,
-		.reset_mask = BIT(7),
-		.halt_check = NOCHECK,
-	},
-	.c = {
-		.dbg_name = "dsi1_reset_clk",
-		.ops = &clk_ops_branch,
-		CLK_INIT(dsi1_reset_clk.c),
-	},
-};
-
-static struct branch_clk dsi2_reset_clk = {
-	.b = {
-		.reset_reg = SW_RESET_CORE_REG,
-		.reset_mask = BIT(25),
-		.halt_check = NOCHECK,
-	},
-	.c = {
-		.dbg_name = "dsi2_reset_clk",
-		.ops = &clk_ops_branch,
-		CLK_INIT(dsi2_reset_clk.c),
-	},
-};
-
 static struct rcg_clk dsi1_byte_clk = {
 	.b = {
 		.ctl_reg = DSI1_BYTE_CC_REG,
 		.en_mask = BIT(0),
+		.reset_reg = SW_RESET_CORE_REG,
+    		.reset_mask = BIT(7),
 		.halt_reg = DBG_BUS_VEC_B_REG,
 		.halt_bit = 21,
 		.retain_reg = DSI1_BYTE_CC_REG,
@@ -3340,6 +3347,7 @@ static struct rcg_clk dsi1_esc_clk = {
 	.b = {
 		.ctl_reg = DSI1_ESC_CC_REG,
 		.en_mask = BIT(0),
+		.reset_reg = SW_RESET_CORE_REG,
 		.halt_reg = DBG_BUS_VEC_I_REG,
 		.halt_bit = 1,
 	},
@@ -3503,7 +3511,6 @@ static struct rcg_clk gfx2d1_clk = {
 /*Shared by 8064, 8930, and 8960ab*/
 static struct clk_freq_tbl clk_tbl_gfx3d[] = {
 	F_GFX3D(        0, gnd,   0,  0),
-	F_GFX3D(  1800000, pxo,   1, 15),
 	F_GFX3D( 27000000, pxo,   0,  0),
 	F_GFX3D( 48000000, pll8,  1,  8),
 	F_GFX3D( 54857000, pll8,  1,  7),
@@ -3519,8 +3526,15 @@ static struct clk_freq_tbl clk_tbl_gfx3d[] = {
 	F_GFX3D(228571000, pll2,  2,  7),
 	F_GFX3D(266667000, pll2,  1,  3),
 	F_GFX3D(320000000, pll2,  2,  5),
-	F_GFX3D(400000000, pll2,  1,  2),
+	F_GFX3D(409500000, pll15, 1,  2),
 	F_GFX3D(450000000, pll15, 1,  2),
+	F_GFX3D(477000000, pll15, 1,  2),
+	F_GFX3D(490500000, pll15, 1,  2),
+	F_GFX3D(504000000, pll15, 1,  2),
+	F_GFX3D(531000000, pll15, 1,  2),
+	F_GFX3D(558000000, pll15, 1,  2),
+	F_GFX3D(585000000, pll15, 1,  2),
+	F_GFX3D(600000000, pll15, 1,  2),
 	F_END
 };
 
@@ -3541,7 +3555,7 @@ static struct clk_freq_tbl clk_tbl_gfx3d_8960[] = {
 	F_GFX3D(266667000, pll2, 1,  3),
 	F_GFX3D(300000000, pll3, 1,  4),
 	F_GFX3D(320000000, pll2, 2,  5),
-	F_GFX3D(400000000, pll2, 1,  2),
+	F_GFX3D(450000000, pll15, 1,  2),
 	F_END
 };
 
@@ -3553,8 +3567,8 @@ static unsigned long fmax_gfx3d_8064ab[MAX_VDD_LEVELS] __initdata = {
 
 static unsigned long fmax_gfx3d_8064[MAX_VDD_LEVELS] __initdata = {
 	[VDD_DIG_LOW]     = 128000000,
-	[VDD_DIG_NOMINAL] = 325000000,
-	[VDD_DIG_HIGH]    = 400000000
+	[VDD_DIG_NOMINAL] = 320000000,
+	[VDD_DIG_HIGH]    = 450000000
 };
 
 static unsigned long fmax_gfx3d_8930[MAX_VDD_LEVELS] __initdata = {
@@ -5465,6 +5479,7 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0034"),
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"),
 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-0048"),
+	CLK_LOOKUP("cam_clk",    	cam1_clk.c,  	"2-0048"),
 	CLK_LOOKUP("cam_clk",		cam1_clk.c,	"4-006c"),
 #endif
 	CLK_LOOKUP("csi_src_clk",	csi0_src_clk.c,		"msm_csid.0"),
@@ -5651,24 +5666,11 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("mem_clk",		ebi1_acpu_a_clk.c, ""),
 	CLK_LOOKUP("bus_clk",		afab_acpu_a_clk.c, ""),
 
-	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
-	CLK_LOOKUP("reset2_clk",	dsi2_reset_clk.c, "footswitch-8x60.4"),
-
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("krait2_mclk",	krait2_m_clk, ""),
 	CLK_LOOKUP("krait3_mclk",	krait3_m_clk, ""),
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "mdp.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "mdp.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"mdp.0"),
 };
 
 static struct clk_lookup msm_clocks_8960_common[] __initdata = {
@@ -5998,25 +6000,12 @@ static struct clk_lookup msm_clocks_8960_common[] __initdata = {
 	CLK_LOOKUP("mem_clk",		ebi1_acpu_a_clk.c, ""),
 	CLK_LOOKUP("bus_clk",		afab_acpu_a_clk.c, ""),
 
-	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
-	CLK_LOOKUP("reset2_clk",	dsi2_reset_clk.c, "footswitch-8x60.4"),
-
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
 	CLK_LOOKUP("krait1_mclk",	krait1_m_clk, ""),
 	CLK_LOOKUP("q6sw_clk",		q6sw_clk,     ""),
 	CLK_LOOKUP("q6fw_clk",		q6fw_clk,     ""),
 	CLK_LOOKUP("q6_func_clk",	q6_func_clk,  ""),
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "mdp.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "mdp.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"mdp.0"),
 };
 
 static struct clk_lookup msm_clocks_8960_only[] __initdata = {
@@ -6339,7 +6328,6 @@ static struct clk_lookup msm_clocks_8930[] = {
 	CLK_LOOKUP("mem_clk",		ebi1_acpu_a_clk.c, ""),
 	CLK_LOOKUP("bus_clk",		afab_acpu_a_clk.c, ""),
 
-	CLK_LOOKUP("reset1_clk",	dsi1_reset_clk.c, "footswitch-8x60.4"),
 
 	CLK_LOOKUP("l2_mclk",		l2_m_clk,     ""),
 	CLK_LOOKUP("krait0_mclk",	krait0_m_clk, ""),
@@ -6348,16 +6336,6 @@ static struct clk_lookup msm_clocks_8930[] = {
 	CLK_LOOKUP("q6fw_clk",		q6fw_clk,     ""),
 	CLK_LOOKUP("q6_func_clk",	q6_func_clk,  ""),
 
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "msm_rotator.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"msm_rotator.0"),
-	CLK_LOOKUP("rot_iommu_clk",	rot_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("mdp_iommu_clk", mdp_axi_clk.c,	"mdp.0"),
-	CLK_LOOKUP("vcodec_iommu0_clk", vcodec_axi_a_clk.c, "mdp.0"),
-	CLK_LOOKUP("vcodec_iommu1_clk", vcodec_axi_b_clk.c, "mdp.0"),
-	CLK_LOOKUP("smmu_iface_clk", smmu_p_clk.c,	"mdp.0"),
 };
 /*
  * Miscellaneous clock register initializations
@@ -6396,7 +6374,7 @@ static struct pll_config pll4_config_393 __initdata = {
 	.main_output_mask = BIT(23),
 };
 
-static struct pll_config_regs pll15_regs __initdata = {
+static struct pll_config_regs pll15_regs = {
 	.l_reg = MM_PLL3_L_VAL_REG,
 	.m_reg = MM_PLL3_M_VAL_REG,
 	.n_reg = MM_PLL3_N_VAL_REG,
@@ -6404,10 +6382,10 @@ static struct pll_config_regs pll15_regs __initdata = {
 	.mode_reg = MM_PLL3_MODE_REG,
 };
 
-static struct pll_config pll15_config __initdata = {
-	.l = (0x24 | BVAL(31, 7, 0x620)),
+static struct pll_config pll15_config = {
+	.l = (0x21 | BVAL(31, 7, 0x620)),
 	.m = 0x1,
-	.n = 0x9,
+	.n = 0x3,
 	.vco_val = BVAL(17, 16, 0x2),
 	.vco_mask = BM(17, 16),
 	.pre_div_val = 0x0,
@@ -6631,10 +6609,10 @@ static void __init reg_init(void)
 	}
 
 	if (cpu_is_apq8064()) {
-		/* Program PLL15 to 975MHz with ref clk = 27MHz */
+		
 		configure_sr_pll(&pll15_config, &pll15_regs, 0);
 	} else if (cpu_is_apq8064ab()) {
-		/* Program PLL15 to 900MHZ */
+		
 		pll15_config.l = 0x21 | BVAL(31, 7, 0x620);
 		pll15_config.m = 0x1;
 		pll15_config.n = 0x3;
@@ -6653,6 +6631,19 @@ static void __init reg_init(void)
 		/* Disable AUX and BIST outputs */
 		writel_relaxed(0, MM_PLL3_TEST_CTL_REG);
 	}
+}
+
+//GPU_OC
+
+extern void configure_pllOC(struct pll_config *config, struct pll_config_regs *regs, u32 ena_fsm_mode);
+
+void __ref SetGPUpll_config(u32 loc, unsigned long freq)
+{
+	pll15_config.l = (loc | BVAL(31, 7, 0x620));
+	pll15_config.m = 0x1;
+	pll15_config.n = 0x3;
+	configure_pllOC(&pll15_config, &pll15_regs, 0);
+	printk("ElementalX: set GPU OC %ld", freq / 1000000);
 }
 
 struct clock_init_data msm8960_clock_init_data __initdata;
