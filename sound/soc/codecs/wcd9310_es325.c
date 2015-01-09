@@ -3707,8 +3707,8 @@ static int tabla_volatile(struct snd_soc_codec *ssc, unsigned int reg)
 #ifndef CONFIG_SOUND_CONTROL_HAX_GPL
 static
 #endif
-int tabla_write(struct snd_soc_codec *codec, unsigned int reg,
-	unsigned int value)
+;unsigned int tabla_write(struct snd_soc_codec *codec, unsigned int reg,
+				unsigned int value)
 {
 	int ret;
 	BUG_ON(reg > TABLA_MAX_REGISTER);
