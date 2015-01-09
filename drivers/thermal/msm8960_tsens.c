@@ -232,7 +232,7 @@ static int tsens_tz_get_temp(struct thermal_zone_device *thermal,
 	return 0;
 }
 
-int32_t tsens_get_temp(struct tsens_device *device, unsigned long *temp)
+int tsens_get_temp(struct tsens_device *device, unsigned long *temp)
 {
 	if (!tmdev)
 		return -ENODEV;
