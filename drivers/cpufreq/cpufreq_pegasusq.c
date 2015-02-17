@@ -57,9 +57,9 @@
 #define DEF_START_DELAY				(0)
 
 #define UP_THRESHOLD_AT_MIN_FREQ		(40)
-#define FREQ_FOR_RESPONSIVENESS			(1728000)
+#define FREQ_FOR_RESPONSIVENESS			(1458000)
 /* for fast decrease */
-#define FREQ_FOR_FAST_DOWN			(1190400)
+#define FREQ_FOR_FAST_DOWN			(702000)
 #define UP_THRESHOLD_AT_FAST_DOWN		(90)
 
 static unsigned int min_sampling_rate;
@@ -578,7 +578,7 @@ static inline void dbs_timer_init(struct cpu_dbs_info_s *dbs_info)
 	if (num_online_cpus() > 1)
 		delay -= jiffies % delay;
 
-	INIT_DELAYED_WORK_DEFERRABLE(&dbs_info->work, do_dbs_timer);
+	INIT_DEFERRABLE_WORK(&dbs_info->work, do_dbs_timer);
 
 	schedule_delayed_work_on(dbs_info->cpu, &dbs_info->work, delay);
 }
