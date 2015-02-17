@@ -703,6 +703,9 @@ cpufreq_freq_attr_rw(scaling_setspeed);
 #ifdef CONFIG_CPU_VOLTAGE_TABLE
 define_one_global_rw(vdd_levels);
 #endif
+#ifdef CONFIG_GPU_VOLTAGE_TABLE
+cpufreq_freq_attr_rw(GPU_mV_table);
+#endif
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -717,6 +720,9 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+#ifdef CONFIG_GPU_VOLTAGE_TABLE
+	&GPU_mV_table.attr,
+#endif
 	NULL
 };
 
