@@ -403,8 +403,6 @@ extern struct cpufreq_governor cpufreq_gov_nightmare;
 extern struct cpufreq_governor cpufreq_gov_pegasusq;
 #define CPUFREQ_DEFAULT_GOVERNOR        (&cpufreq_gov_pegasusq)
 #endif
- 
-#endif
 
 
 /*********************************************************************
